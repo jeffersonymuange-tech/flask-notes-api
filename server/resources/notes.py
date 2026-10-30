@@ -39,9 +39,10 @@ class NoteList(Resource):
         per_page = request.args.get("per_page", DEFAULT_PER_PAGE, type=int)
         per_page = max(1, min(per_page, MAX_PER_PAGE))
 
+        # id breaks ties so notes created at the same instant keep a stable order
         pagination = (
             Note.query.filter_by(user_id=session["user_id"])
-            .order_by(Note.created_at.desc())
+            .order_by(Note.created_at.desc(), Note.id.desc())
             .paginate(page=page, per_page=per_page, error_out=False)
         )
 
