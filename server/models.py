@@ -1,11 +1,16 @@
 from datetime import datetime
+
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import validates
 
 from config import bcrypt, db
 
+MIN_PASSWORD_LENGTH = 6
+
 
 class User(db.Model):
+    """An account holder who owns a collection of notes."""
+
     __tablename__ = "users"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -18,16 +23,21 @@ class User(db.Model):
 
     @hybrid_property
     def password_hash(self):
-        # Never expose the hash
+        # Write-only: the hash is never exposed
         raise AttributeError("Password hashes may not be viewed.")
 
     @password_hash.setter
     def password_hash(self, password):
+        if not password or len(password) < MIN_PASSWORD_LENGTH:
+            raise ValueError(
+                f"Password must be at least {MIN_PASSWORD_LENGTH} characters."
+            )
         self._password_hash = bcrypt.generate_password_hash(
             password.encode("utf-8")
         ).decode("utf-8")
 
     def authenticate(self, password):
+        """Return True if the password matches the stored hash."""
         return bcrypt.check_password_hash(
             self._password_hash, password.encode("utf-8")
         )
@@ -43,6 +53,8 @@ class User(db.Model):
 
 
 class Note(db.Model):
+    """A single note that belongs to one user."""
+
     __tablename__ = "notes"
 
     id = db.Column(db.Integer, primary_key=True)
